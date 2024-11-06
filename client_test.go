@@ -52,7 +52,7 @@ func Test_innerClient_Get(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(gotResBody, tt.wantResBody) {
-				t.Errorf("Get() gotResBody = %v, want %v", gotResBody, tt.wantResBody)
+				t.Errorf("Get() gotResBody = %v, want %v", string(gotResBody), tt.wantResBody)
 			}
 		})
 	}
