@@ -7,9 +7,9 @@ func Get(url string, params map[string]string) ([]byte, string, error) {
 	return body, log.Curl, err
 }
 
-func Post(url string, bodyJson any) ([]byte, string, error) {
+func Post(url string, reqParamsMapOrStruct any) (data []byte, curl string, err error) {
 	c := NewClient()
-	body, err := c.Post(url, bodyJson)
+	body, err := c.Post(url, reqParamsMapOrStruct)
 	log := c.GetLastRequestLog()
 	return body, log.Curl, err
 }

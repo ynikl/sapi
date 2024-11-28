@@ -2,10 +2,11 @@ package sip
 
 import (
 	"bytes"
-	"context"
+	"crypto/tls"
 	jsoniter "github.com/json-iterator/go"
 	"io"
 	"moul.io/http2curl"
+	"net"
 	"net/http"
 	"time"
 )
@@ -13,7 +14,6 @@ import (
 type (
 	innerClient struct {
 		client  *http.Client
-		timeout time.Duration
 		reqLogs []*RequestLog
 	}
 	RequestLog struct {
@@ -24,21 +24,32 @@ type (
 	}
 )
 
-func (i *innerClient) Get(url string, params map[string]string) (resBody []byte, err error) {
-
-	ctx := context.Background()
-	if i.timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, i.timeout)
-		defer cancel()
+var (
+	innerCacheTransport = &http.Transport{
+		MaxIdleConnsPerHost:   333,
+		IdleConnTimeout:       33 * time.Second,
+		MaxConnsPerHost:       3000,
+		ResponseHeaderTimeout: time.Second * 10,
+		DialContext: (&net.Dialer{
+			Timeout:   time.Second * 10,
+			KeepAlive: 60 * time.Second,
+		}).DialContext,
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS11,
+		},
 	}
+
+	defaultHttpTimeout = time.Minute
+)
+
+func (i *innerClient) Get(url string, params map[string]string) (resBody []byte, err error) {
 
 	u, err := buildUrl(url, params)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -72,23 +83,16 @@ func (i *innerClient) Get(url string, params map[string]string) (resBody []byte,
 
 }
 
-func (i *innerClient) Post(url string, reqBody any) (resBody []byte, err error) {
+func (i *innerClient) Post(url string, reqParamsMapOrStruct any) (resBody []byte, err error) {
 
-	ctx := context.Background()
-	if i.timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, i.timeout)
-		defer cancel()
-	}
-
-	bodyData, err := jsoniter.Marshal(reqBody)
+	bodyData, err := jsoniter.Marshal(reqParamsMapOrStruct)
 	if err != nil {
 		return nil, err
 	}
 
 	reader := bytes.NewReader(bodyData)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, reader)
+	req, err := http.NewRequest(http.MethodPost, url, reader)
 	if err != nil {
 		return nil, err
 	}

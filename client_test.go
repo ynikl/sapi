@@ -28,7 +28,10 @@ func Test_innerClient_Get(t *testing.T) {
 		{
 			name: "normal request without error",
 			fields: fields{
-				client:  client,
+				client: &http.Client{
+					Transport: innerCacheTransport,
+					Timeout:   1 * time.Minute,
+				},
 				timeout: 0,
 				reqLogs: nil,
 			},
@@ -43,7 +46,6 @@ func Test_innerClient_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			i := &innerClient{
 				client:  tt.fields.client,
-				timeout: tt.fields.timeout,
 				reqLogs: tt.fields.reqLogs,
 			}
 			gotResBody, err := i.Get(tt.args.url, tt.args.params)
