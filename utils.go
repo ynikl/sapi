@@ -1,4 +1,4 @@
-package sip
+package sapi
 
 import (
 	urlPkg "net/url"

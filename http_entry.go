@@ -1,4 +1,4 @@
-package sip
+package sapi
 
 func Get(url string, params map[string]string) ([]byte, string, error) {
 	c := NewClient()
